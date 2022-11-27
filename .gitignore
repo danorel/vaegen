@@ -131,3 +131,4 @@ dmypy.json
 # Custom ignore files/directories
 tests/**/*.h5ad
 figures/**/*.pdf
+models/**/*.pt
