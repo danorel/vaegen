@@ -129,4 +129,5 @@ dmypy.json
 .pyre/
 
 # Custom ignore files/directories
-*/**/*.h5ad
+tests/**/*.h5ad
+figures/**/*.pdf
