@@ -4,6 +4,7 @@ jupyter==1.0.0
 matplotlib==3.6.2
 numpy==1.23.5
 pandas==1.5.2
+python-dotenv==0.21.0
 scanpy==1.9.1
 scgen==2.1.0
 scikit-learn==1.1.3

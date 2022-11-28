@@ -34,11 +34,13 @@ class scDataset(Dataset):
         return self.X[idx, :], self.y[idx]
 
 
-def get_adata(dataset="kang", train=True):
+def get_adata(dataset="kang", train=True, verbose=False):
     adata = None
     train_or_test = "train" if train else "test"
     if dataset == "kang":
         adata = scanpy.read_h5ad(os.path.join("data", f"{train_or_test}_kang.h5ad"))
+        if verbose:
+            print(adata)
     return adata
 
 

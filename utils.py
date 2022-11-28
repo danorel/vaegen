@@ -3,11 +3,10 @@ import os
 import numpy as np
 from dotenv import load_dotenv
 
-
 load_dotenv()
 CONDITION_KEY, CELL_TYPE_KEY = os.getenv('CONDITION_KEY'), os.getenv('CELL_TYPE_KEY')
-CONTROL_KEY, STIMULATED_KEY, PREDICTED_KEY = os.getenv('CONTROL_KEY'), os.getenv('STIMULATED_KEY'), os.getenv('PREDICTED_KEY')
-
+CONTROL_KEY, STIMULATED_KEY, PREDICTED_KEY = os.getenv('CONTROL_KEY'), os.getenv('STIMULATED_KEY'), os.getenv(
+    'PREDICTED_KEY')
 
 
 def get_sample(adata, sample_size=1000):
@@ -17,7 +16,7 @@ def get_sample(adata, sample_size=1000):
 
 def remove_stimulated_for_celltype(adata, celltype):
     return adata[~((adata.obs[CELL_TYPE_KEY] == celltype) &
-                    (adata.obs[CONDITION_KEY] == "stimulated"))].copy()
+                   (adata.obs[CONDITION_KEY] == "stimulated"))].copy()
 
 
 def extractor(adata, cell_type):
@@ -27,14 +26,14 @@ def extractor(adata, cell_type):
     cell_with_both_condition = adata[adata.obs[CELL_TYPE_KEY] == cell_type]
     condition_1 = adata[
         (adata.obs[CELL_TYPE_KEY] == cell_type) & (adata.obs[CONDITION_KEY] == CONTROL_KEY)
-    ]
+        ]
     condition_2 = adata[
         (adata.obs[CELL_TYPE_KEY] == cell_type) & (adata.obs[CONDITION_KEY] == STIMULATED_KEY)
-    ]
+        ]
     training = adata[
         ~(
-            (adata.obs[CELL_TYPE_KEY] == cell_type)
-            & (adata.obs[CONDITION_KEY] == STIMULATED_KEY)
+                (adata.obs[CELL_TYPE_KEY] == cell_type)
+                & (adata.obs[CONDITION_KEY] == STIMULATED_KEY)
         )
     ]
     return [training, condition_1, condition_2, cell_with_both_condition]

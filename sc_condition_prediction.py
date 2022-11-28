@@ -178,7 +178,6 @@ def evaluate_r2(params_filename):
     return r2_value, r2_value_diff_genes
 
 
-
 def evaluate(show_plots=True):
     autoencoder = load_vae_model()
     
@@ -237,9 +236,8 @@ def evaluate(show_plots=True):
                  show=show_plots)
 
     return r2_value, r2_value_diff_genes
-        
 
 
-if __name__ == "__main__":        
+if __name__ == "__main__":
     create_and_train_vae_model(train_new, epochs=20)
-    evaluate(show_plots=False)  
+    evaluate(show_plots=False)
