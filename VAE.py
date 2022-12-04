@@ -33,7 +33,7 @@ class FCLayers(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, n_input, n_layers, n_hidden, n_latent, dropout_rate=0.1, distribution='normal'):
+    def __init__(self, n_input, n_layers, n_hidden, n_latent, dropout_rate=0.2, distribution='normal'):
         super(Encoder, self).__init__()
         self.fc = FCLayers(n_input, n_layers, n_hidden, dropout_rate)
         self.mean_encoder = nn.Linear(n_hidden, n_latent)

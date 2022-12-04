@@ -22,8 +22,8 @@ CONDITION_KEY, CELL_TYPE_KEY = os.getenv('CONDITION_KEY'), os.getenv('CELL_TYPE_
 CONTROL_KEY, STIMULATED_KEY, PREDICTED_KEY = os.getenv('CONTROL_KEY'), os.getenv('STIMULATED_KEY'), os.getenv('PREDICTED_KEY')
 
 N_INPUT = n_input = train_new.shape[1] # number of features, dimensionality of an input space
-N_HIDDEN = 200  # size of a hidden layer
-N_LAYERS = 2    # number of hidden layers in fully-connected NN 
+N_HIDDEN = 100  # size of a hidden layer
+N_LAYERS = 3    # number of hidden layers in fully-connected NN 
 N_LATENT = 10   # dimensionality of latent space
 BATCH_SIZE = 32
 
@@ -60,7 +60,7 @@ def train(autoencoder, dataloader, epochs=20, verbose=False):
 
 
 
-def create_and_train_vae_model(adata, epochs=20, save_params_to_filename='autoencoder.pt'):
+def create_and_train_vae_model(adata, epochs=20, verbose=False, save_params_to_filename='autoencoder.pt'):
     np.random.seed(43)
     # DATASET & DATALOADER
     dataset = get_dataset_torch(adata)
@@ -73,7 +73,8 @@ def create_and_train_vae_model(adata, epochs=20, save_params_to_filename='autoen
     # TRAIN
     autoencoder = train(autoencoder, 
                         dataloader=dataloader, 
-                        epochs=epochs)
+                        epochs=epochs,
+                        verbose=verbose)
     # SAVE parameters
     torch.save(autoencoder.state_dict(), save_params_to_filename)
 
@@ -198,7 +199,7 @@ def evaluate(show_plots=True):
     
     eval_adata = ctrl_adata.concatenate(stim_adata, predicted_adata)
 
-    sc.tl.pca(eval_adata)
+    sc.tl.pca(eval_adata)   
     sc.pl.pca(eval_adata, color=CONDITION_KEY, frameon=False, 
               save='_pred_eval.pdf', show=show_plots)
 

@@ -51,7 +51,7 @@ def get_dataset_torch(adata):
 
 
 def get_dataloader_torch(dataset, batch_size=32):
-    return DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=True)
 
 
 
