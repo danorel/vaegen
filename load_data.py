@@ -6,14 +6,10 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import ToTensor
 
 
-
-
-
 def save_kang():
     train = scanpy.read("./tests/data/train_kang.h5ad",
                 backup_url='https://drive.google.com/uc?id=1r87vhoLLq6PXAYdmyyd89zG90eJOFYLk')
     train.write(os.path.join("data", "train_kang.h5ad"))
-
 
 
 class scDataset(Dataset):
@@ -34,13 +30,10 @@ class scDataset(Dataset):
         return self.X[idx, :], self.y[idx]
 
 
-def get_adata(dataset="kang", train=True, verbose=False):
-    adata = None
-    train_or_test = "train" if train else "test"
-    if dataset == "kang":
-        adata = scanpy.read_h5ad(os.path.join("data", f"{train_or_test}_kang.h5ad"))
-        if verbose:
-            print(adata)
+def get_adata(dataset, verbose=False):
+    adata = scanpy.read_h5ad(os.path.join("data", f"{dataset}.h5ad"))
+    if verbose:
+        print(adata)
     return adata
 
 

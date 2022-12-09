@@ -79,7 +79,7 @@ def balance_classes_inside_segments(adata,
 
 if __name__ == "__main__":
     # demo
-    adata = get_adata()
+    adata = get_adata(dataset="train_kang")
     adata = balance_classes_inside_segments(adata, 
                                             class_key=CELL_TYPE_KEY, 
                                             segment_key=CONDITION_KEY,

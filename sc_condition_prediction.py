@@ -1,9 +1,10 @@
 import os
-
 import numpy as np
-from dotenv import load_dotenv
 import scanpy as sc
 import torch
+import scgen
+
+from dotenv import load_dotenv
 from torch.distributions import kl_divergence, Normal
 
 from VAE import VAE, DEVICE
@@ -13,7 +14,7 @@ from plotting import reg_mean_plot
 
 
 # Loading AnnData dataset with single-cell data 
-train_adata = get_adata(dataset="kang", train=True)
+train_adata = get_adata(dataset="train_kang")
 train_new = remove_stimulated_for_celltype(train_adata, celltype="CD4T")
 
 # Initializing constants
@@ -58,23 +59,28 @@ def train(autoencoder, dataloader, epochs=20, verbose=False):
     return autoencoder
 
 
-
-
-def create_and_train_vae_model(adata, epochs=20, verbose=False, save_params_to_filename='autoencoder.pt'):
+def create_and_train_vae_model(adata, epochs=20, custom=False, verbose=False, save_params_to_filename='autoencoder.pt'):
     np.random.seed(43)
     # DATASET & DATALOADER
     dataset = get_dataset_torch(adata)
     dataloader = get_dataloader_torch(dataset, batch_size=BATCH_SIZE)
-    # CREATE model
-    autoencoder = VAE(n_input=N_INPUT, 
-                      n_layers=N_LAYERS, 
-                      n_hidden=N_HIDDEN, 
-                      n_latent=N_LATENT)
-    # TRAIN
-    autoencoder = train(autoencoder, 
-                        dataloader=dataloader, 
-                        epochs=epochs,
-                        verbose=verbose)
+    if custom:
+        autoencoder = VAE(n_input=N_INPUT,
+                          n_layers=N_LAYERS,
+                          n_hidden=N_HIDDEN,
+                          n_latent=N_LATENT)
+        autoencoder = train(autoencoder,
+                            dataloader=dataloader,
+                            epochs=epochs,
+                            verbose=verbose)
+    else:
+        autoencoder = scgen.SCGEN(train_new)
+        autoencoder.train(
+            max_epochs=100,
+            batch_size=32,
+            early_stopping=True,
+            early_stopping_patience=10
+        )
     # SAVE parameters
     torch.save(autoencoder.state_dict(), save_params_to_filename)
 
