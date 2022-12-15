@@ -9,25 +9,24 @@ from torch.distributions import kl_divergence, Normal
 
 from VAE import VAE, DEVICE
 from load_data import get_adata, get_dataset_torch, get_dataloader_torch
-from utils import extractor, balancer, remove_stimulated_for_celltype
+from utils import extractor, balancer, remove_stimulated_for_cell_type
 from plotting import reg_mean_plot
 
-
-# Loading AnnData dataset with single-cell data 
+# Loading AnnData dataset with single-cell data
 train_adata = get_adata(dataset="train_kang")
-train_new = remove_stimulated_for_celltype(train_adata, celltype="CD4T")
+train_new = remove_stimulated_for_cell_type(train_adata, cell_type="CD4T")
 
 # Initializing constants
 load_dotenv()
 CONDITION_KEY, CELL_TYPE_KEY = os.getenv('CONDITION_KEY'), os.getenv('CELL_TYPE_KEY')
-CONTROL_KEY, STIMULATED_KEY, PREDICTED_KEY = os.getenv('CONTROL_KEY'), os.getenv('STIMULATED_KEY'), os.getenv('PREDICTED_KEY')
+CONTROL_KEY, STIMULATED_KEY, PREDICTED_KEY = os.getenv('CONTROL_KEY'), os.getenv('STIMULATED_KEY'), os.getenv(
+    'PREDICTED_KEY')
 
-N_INPUT = n_input = train_new.shape[1] # number of features, dimensionality of an input space
+N_INPUT = n_input = train_new.shape[1]  # number of features, dimensionality of an input space
 N_HIDDEN = 100  # size of a hidden layer
-N_LAYERS = 3    # number of hidden layers in fully-connected NN 
-N_LATENT = 10   # dimensionality of latent space
+N_LAYERS = 3  # number of hidden layers in fully-connected NN
+N_LATENT = 10  # dimensionality of latent space
 BATCH_SIZE = 32
-
 
 
 def train(autoencoder, dataloader, epochs=20, verbose=False):
@@ -50,8 +49,8 @@ def train(autoencoder, dataloader, epochs=20, verbose=False):
                 Normal(qz_m, torch.sqrt(qz_v)),
                 Normal(0, 1),
             ).sum(dim=1)
-            reconstruction_loss = ((x - x_hat)**2).sum()
-            loss = (0.5*reconstruction_loss + 0.5*(kl_div * kl_weight)).mean()
+            reconstruction_loss = ((x - x_hat) ** 2).sum()
+            loss = (0.5 * reconstruction_loss + 0.5 * (kl_div * kl_weight)).mean()
             loss.backward()
             # optimization step
             opt.step()
@@ -59,9 +58,10 @@ def train(autoencoder, dataloader, epochs=20, verbose=False):
     return autoencoder
 
 
-def create_and_train_vae_model(adata, epochs=20, custom=False, verbose=False, save_params_to_filename='autoencoder.pt'):
+def create_and_train_vae_model(adata, epochs=20, custom=True, verbose=False, save_params_to_filename='autoencoder.pt'):
     np.random.seed(43)
     # DATASET & DATALOADER
+    adata = adata.copy()
     dataset = get_dataset_torch(adata)
     dataloader = get_dataloader_torch(dataset, batch_size=BATCH_SIZE)
     if custom:
@@ -73,30 +73,31 @@ def create_and_train_vae_model(adata, epochs=20, custom=False, verbose=False, sa
                             dataloader=dataloader,
                             epochs=epochs,
                             verbose=verbose)
+        torch.save(autoencoder.state_dict(), save_params_to_filename)
     else:
-        autoencoder = scgen.SCGEN(train_new)
+        scgen.SCGEN.setup_anndata(adata, batch_key=CONDITION_KEY, labels_key=CELL_TYPE_KEY)
+        autoencoder = scgen.SCGEN(adata)
         autoencoder.train(
             max_epochs=100,
             batch_size=32,
             early_stopping=True,
-            early_stopping_patience=10
+            early_stopping_patience=1
         )
-    # SAVE parameters
-    torch.save(autoencoder.state_dict(), save_params_to_filename)
+        autoencoder.save(save_params_to_filename, overwrite=True)
+    pass
 
 
 def load_vae_model(filename='autoencoder.pt'):
     """
         Returns pretrained VAE model
     """
-    autoencoder = VAE(n_input=N_INPUT, 
-                      n_layers=N_LAYERS, 
-                      n_hidden=N_HIDDEN, 
+    autoencoder = VAE(n_input=N_INPUT,
+                      n_layers=N_LAYERS,
+                      n_hidden=N_HIDDEN,
                       n_latent=N_LATENT)
     autoencoder.load_state_dict(torch.load(filename))
     return autoencoder
-    
-    
+
 
 def get_latent_representation(autoencoder, adata, as_numpy=False):
     _, _, latent_X = autoencoder.encoder(torch.tensor(adata.to_df().values))
@@ -106,20 +107,20 @@ def get_latent_representation(autoencoder, adata, as_numpy=False):
         return sc.AnnData(X=latent_X.detach().numpy(), obs=adata.obs.copy())
 
 
-
-
-def predict(autoencoder, 
-            adata, 
-            celltype_to_predict):
+def predict(autoencoder,
+            adata,
+            cell_type_to_predict,
+            need_balancer=True):
     ctrl_x = adata[adata.obs[CONDITION_KEY] == CONTROL_KEY, :]
     stim_x = adata[adata.obs[CONDITION_KEY] == STIMULATED_KEY, :]
-    
-    # balance control and stimulated dataset
-    ctrl_x = balancer(adata=ctrl_x)
-    stim_x = balancer(adata=stim_x)
-    
+
+    if need_balancer:
+        # balance control and stimulated dataset
+        ctrl_x = balancer(adata=ctrl_x)
+        stim_x = balancer(adata=stim_x)
+
     # Get control adata (we predict stimulated for it)
-    ctrl_pred = extractor(adata, celltype_to_predict)[1]
+    ctrl_pred = extractor(adata, cell_type_to_predict)[1]
 
     # Equalize the sized od control and stimulated dataset
     eq = min(ctrl_x.X.shape[0], stim_x.X.shape[0])
@@ -133,12 +134,12 @@ def predict(autoencoder,
     latent_stim = np.mean(get_latent_representation(autoencoder, stim_adata, as_numpy=True), axis=0)
 
     delta = latent_stim - latent_ctrl
-    
+
     # get latent representation of anndata we want to predict stimulated for
     latent_cd = get_latent_representation(autoencoder, ctrl_pred, as_numpy=True)
 
     stim_pred = delta + latent_cd
-    
+
     # decode predicted stimulated
     predicted_cells = (
         autoencoder.decoder(torch.Tensor(stim_pred)).cpu().detach().numpy()
@@ -155,24 +156,31 @@ def predict(autoencoder,
     return predicted_adata, delta
 
 
-
-def evaluate_r2(params_filename):
+def evaluate_r2(params_filename,
+                adata,
+                cell_type_to_predict='CD4T'):
     autoencoder = load_vae_model(params_filename)
 
     # Predict stimulated cells from control and visualize
-    ctrl_adata = train_adata[((train_adata.obs[CELL_TYPE_KEY] == 'CD4T') & (train_adata.obs[CONDITION_KEY] == CONTROL_KEY))]
-    stim_adata = train_adata[((train_adata.obs[CELL_TYPE_KEY] == 'CD4T') & (train_adata.obs[CONDITION_KEY] == STIMULATED_KEY))]
+    adata_ctrl = adata[
+        ((adata.obs[CELL_TYPE_KEY] == cell_type_to_predict) & (adata.obs[CONDITION_KEY] == CONTROL_KEY))]
+    adata_stim = adata[
+        ((adata.obs[CELL_TYPE_KEY] == cell_type_to_predict) & (adata.obs[CONDITION_KEY] == STIMULATED_KEY))]
 
-    predicted_adata, delta = predict(autoencoder, train_new, celltype_to_predict='CD4T')
-    
-    eval_adata = ctrl_adata.concatenate(stim_adata, predicted_adata)
+    adata_no_stim = remove_stimulated_for_cell_type(adata, cell_type=cell_type_to_predict)
 
-    CD4T = train_adata[train_adata.obs[CELL_TYPE_KEY] == "CD4T"]
-    sc.tl.rank_genes_groups(CD4T, groupby=CONDITION_KEY, method="wilcoxon")
-    diff_genes = CD4T.uns["rank_genes_groups"]["names"][STIMULATED_KEY]
+    adata_pred, delta = predict(autoencoder,
+                                adata_no_stim,
+                                cell_type_to_predict=cell_type_to_predict)
+
+    adata_eval = adata_ctrl.concatenate(adata_stim, adata_pred)
+
+    adata_cell_type_to_predict = adata[adata.obs[CELL_TYPE_KEY] == cell_type_to_predict]
+    sc.tl.rank_genes_groups(adata_cell_type_to_predict, groupby=CONDITION_KEY, method="wilcoxon")
+    diff_genes = adata_cell_type_to_predict.uns["rank_genes_groups"]["names"][STIMULATED_KEY]
 
     r2_value, r2_value_diff_genes = reg_mean_plot(
-        eval_adata,
+        adata_eval,
         axis_keys={"x": PREDICTED_KEY, "y": STIMULATED_KEY},
         gene_list=diff_genes[:10],
         top_100_genes=diff_genes,
@@ -185,9 +193,26 @@ def evaluate_r2(params_filename):
     return r2_value, r2_value_diff_genes
 
 
+def validate_r2(params_filename,
+                adata,
+                cell_types_to_predict):
+    r2_value_avg, r2_value_diff_genes_avg = 0, 0
+
+    for cell_type_to_predict in cell_types_to_predict:
+        r2_value, r2_value_diff_genes = evaluate_r2(params_filename, adata, cell_type_to_predict)
+
+        r2_value_avg += r2_value
+        r2_value_diff_genes_avg += r2_value_diff_genes
+
+    r2_value_avg = r2_value_avg / len(cell_types_to_predict)
+    r2_value_diff_genes_avg = r2_value_diff_genes_avg / len(cell_types_to_predict)
+
+    return r2_value_avg, r2_value_diff_genes_avg
+
+
 def evaluate(show_plots=True):
     autoencoder = load_vae_model()
-    
+
     # Plot lattent representation of cell data.
     _, _, latent_X = autoencoder.encoder(torch.tensor(train_new.to_df().values))
 
@@ -195,22 +220,24 @@ def evaluate(show_plots=True):
     sc.pp.neighbors(latent_adata)
     sc.tl.umap(latent_adata)
     sc.pl.umap(latent_adata, color=[CONDITION_KEY, CELL_TYPE_KEY], wspace=0.4, frameon=False,
-            save='_latent_space.pdf', show=show_plots)
+               save='_latent_space.pdf', show=show_plots)
 
     # Predict stimulated cells from control and visualize
-    ctrl_adata = train_adata[((train_adata.obs[CELL_TYPE_KEY] == 'CD4T') & (train_adata.obs[CONDITION_KEY] == CONTROL_KEY))]
-    stim_adata = train_adata[((train_adata.obs[CELL_TYPE_KEY] == 'CD4T') & (train_adata.obs[CONDITION_KEY] == STIMULATED_KEY))]
+    ctrl_adata = train_adata[
+        ((train_adata.obs[CELL_TYPE_KEY] == 'CD4T') & (train_adata.obs[CONDITION_KEY] == CONTROL_KEY))]
+    stim_adata = train_adata[
+        ((train_adata.obs[CELL_TYPE_KEY] == 'CD4T') & (train_adata.obs[CONDITION_KEY] == STIMULATED_KEY))]
 
-    predicted_adata, delta = predict(autoencoder, train_new, celltype_to_predict='CD4T')
-    
+    predicted_adata, delta = predict(autoencoder, train_new, cell_type_to_predict='CD4T')
+
     eval_adata = ctrl_adata.concatenate(stim_adata, predicted_adata)
 
-    sc.tl.pca(eval_adata)   
-    sc.pl.pca(eval_adata, color=CONDITION_KEY, frameon=False, 
+    sc.tl.pca(eval_adata)
+    sc.pl.pca(eval_adata, color=CONDITION_KEY, frameon=False,
               save='_pred_eval.pdf', show=show_plots)
 
     # Mean correlation plot``
-    CD4T = train_adata[train_adata.obs[CELL_TYPE_KEY] =="CD4T"]
+    CD4T = train_adata[train_adata.obs[CELL_TYPE_KEY] == "CD4T"]
     sc.tl.rank_genes_groups(CD4T, groupby=CONDITION_KEY, method="wilcoxon")
     diff_genes = CD4T.uns["rank_genes_groups"]["names"][STIMULATED_KEY]
     print(diff_genes)
@@ -229,7 +256,7 @@ def evaluate(show_plots=True):
         eval_adata,
         axis_keys={"x": PREDICTED_KEY, "y": STIMULATED_KEY},
         gene_list=diff_genes[:10],
-        top_100_genes= diff_genes,
+        top_100_genes=diff_genes,
         labels={"x": "predicted", "y": "ground truth"},
         path_to_save=os.path.join("figures", "reg_mean_top100_genes.pdf"),
         show=show_plots,
@@ -237,8 +264,8 @@ def evaluate(show_plots=True):
     )
 
     # Violin plot  or a specific gene
-    sc.pl.violin(eval_adata, 
-                 keys="ISG15", groupby=CONDITION_KEY, 
+    sc.pl.violin(eval_adata,
+                 keys="ISG15", groupby=CONDITION_KEY,
                  save='_violin_ISG15.pdf',
                  show=show_plots)
 

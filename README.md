@@ -1,2 +1,2 @@
 # vaegen
-VAE imlementation with scGen methodology
+VAE implementation with scGen methodology

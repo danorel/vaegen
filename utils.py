@@ -1,6 +1,7 @@
 import os
-
+import anndata as ad
 import numpy as np
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -9,14 +10,26 @@ CONTROL_KEY, STIMULATED_KEY, PREDICTED_KEY = os.getenv('CONTROL_KEY'), os.getenv
     'PREDICTED_KEY')
 
 
+def create_model_dir(name):
+    model_directory = os.path.join("models", name)
+    if not os.path.exists(model_directory):
+        os.makedirs(model_directory)
+    pass
+
+
 def get_sample(adata, sample_size=1000):
     barcodes = adata.obs.index.values
     return adata[np.random.choice(barcodes, sample_size), :]
 
 
-def remove_stimulated_for_celltype(adata, celltype):
-    return adata[~((adata.obs[CELL_TYPE_KEY] == celltype) &
-                   (adata.obs[CONDITION_KEY] == "stimulated"))].copy()
+def remove_stimulated_for_cell_type(adata, cell_type):
+    return adata[~((adata.obs[CELL_TYPE_KEY] == cell_type) &
+                   (adata.obs[CONDITION_KEY] == STIMULATED_KEY))].copy()
+
+
+def remove_stimulated_for_cell_types(adata, cell_types):
+    return adata[~((adata.obs[CELL_TYPE_KEY].isin(cell_types)) &
+                   (adata.obs[CONDITION_KEY] == STIMULATED_KEY))].copy()
 
 
 def extractor(adata, cell_type):

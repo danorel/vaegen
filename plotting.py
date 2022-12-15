@@ -5,23 +5,22 @@ import matplotlib.pyplot as plt
 from adjustText import adjust_text
 
 
-
 def reg_mean_plot(
-    adata,
-    axis_keys,
-    labels,
-    path_to_save="./reg_mean.pdf",
-    save=True,
-    gene_list=None,
-    show=False,
-    top_100_genes=None,
-    verbose=False,
-    legend=True,
-    title=None,
-    x_coeff=0.30,
-    y_coeff=0.8,
-    fontsize=14,
-    **kwargs,
+        adata,
+        axis_keys,
+        labels,
+        path_to_save="./reg_mean.pdf",
+        save=True,
+        gene_list=None,
+        show=False,
+        top_100_genes=None,
+        verbose=False,
+        legend=True,
+        title=None,
+        x_coeff=0.30,
+        y_coeff=0.8,
+        fontsize=14,
+        **kwargs,
 ):
     """
     Plots mean matching figure for a set of specific genes.
@@ -49,12 +48,12 @@ def reg_mean_plot(
             x_diff, y_diff
         )
         if verbose:
-            print("top_100 DEGs mean: ", r_value_diff**2)
+            print("top_100 DEGs mean: ", r_value_diff ** 2)
     x = np.asarray(np.mean(ctrl.X, axis=0)).ravel()
     y = np.asarray(np.mean(stim.X, axis=0)).ravel()
     m, b, r_value, p_value, std_err = stats.linregress(x, y)
     if verbose:
-        print("All genes mean: ", r_value**2)
+        print("All genes mean: ", r_value ** 2)
     df = pd.DataFrame({axis_keys["x"]: x, axis_keys["y"]: y})
     ax = sns.regplot(x=axis_keys["x"], y=axis_keys["y"], data=df)
     ax.tick_params(labelsize=fontsize)
@@ -109,6 +108,6 @@ def reg_mean_plot(
         plt.show()
     plt.close()
     if diff_genes is not None:
-        return r_value**2, r_value_diff**2
+        return r_value ** 2, r_value_diff ** 2
     else:
-        return r_value**2
+        return r_value ** 2
