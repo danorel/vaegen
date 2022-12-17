@@ -240,7 +240,6 @@ def evaluate(show_plots=True):
     CD4T = train_adata[train_adata.obs[CELL_TYPE_KEY] == "CD4T"]
     sc.tl.rank_genes_groups(CD4T, groupby=CONDITION_KEY, method="wilcoxon")
     diff_genes = CD4T.uns["rank_genes_groups"]["names"][STIMULATED_KEY]
-    print(diff_genes)
 
     r2_value = reg_mean_plot(
         eval_adata,

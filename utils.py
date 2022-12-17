@@ -1,5 +1,4 @@
 import os
-import anndata as ad
 import numpy as np
 
 from dotenv import load_dotenv
@@ -17,19 +16,48 @@ def create_model_dir(name):
     pass
 
 
-def get_sample(adata, sample_size=1000):
-    barcodes = adata.obs.index.values
-    return adata[np.random.choice(barcodes, sample_size), :]
+def get_sample(adata, cell_type=None, sample_size=1000):
+    adata_target = adata.copy()
+    if cell_type:
+        adata_target = adata_target[adata.obs[CELL_TYPE_KEY] == cell_type]
+    barcodes = adata_target.obs.index.values
+    indices = np.random.choice(barcodes, sample_size)
+    return adata_target[indices, :]
 
 
-def remove_stimulated_for_cell_type(adata, cell_type):
-    return adata[~((adata.obs[CELL_TYPE_KEY] == cell_type) &
-                   (adata.obs[CONDITION_KEY] == STIMULATED_KEY))].copy()
+def remove_cell_type(adata, cell_type, verbose=False):
+    if verbose:
+        print("-" * 10 + "Before" + "-" * 10)
+        print(adata)
+    adata_no_cell_type = adata[~(adata.obs[CELL_TYPE_KEY] == cell_type)].copy()
+    if verbose:
+        print("-" * 10 + "After" + "-" * 10)
+        print(adata_no_cell_type)
+    return adata_no_cell_type
 
 
-def remove_stimulated_for_cell_types(adata, cell_types):
-    return adata[~((adata.obs[CELL_TYPE_KEY].isin(cell_types)) &
-                   (adata.obs[CONDITION_KEY] == STIMULATED_KEY))].copy()
+def remove_stimulated_for_cell_type(adata, cell_type, verbose=False):
+    if verbose:
+        print("-" * 10 + "Before" + "-" * 10)
+        print(adata)
+    adata_no_stimulated_cell_type = adata[~((adata.obs[CELL_TYPE_KEY] == cell_type) &
+                             (adata.obs[CONDITION_KEY] == STIMULATED_KEY))].copy()
+    if verbose:
+        print("-" * 10 + "After" + "-" * 10)
+        print(adata_no_stimulated_cell_type)
+    return adata_no_stimulated_cell_type
+
+
+def remove_stimulated_for_cell_types(adata, cell_types, sample_size=None, verbose=False):
+    if verbose:
+        print("-" * 10 + "Before" + "-" * 10)
+        print(adata[adata.obs[CONDITION_KEY] == STIMULATED_KEY])
+    adata_modified = adata[~((adata.obs[CELL_TYPE_KEY].isin(cell_types)) &
+                             (adata.obs[CONDITION_KEY] == STIMULATED_KEY))].copy()
+    if verbose:
+        print("-" * 10 + "After" + "-" * 10)
+        print(adata_modified[adata_modified.obs[CONDITION_KEY] == STIMULATED_KEY])
+    return adata_modified
 
 
 def extractor(adata, cell_type):
