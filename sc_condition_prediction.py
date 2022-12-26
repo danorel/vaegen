@@ -24,7 +24,7 @@ CONTROL_KEY, STIMULATED_KEY, PREDICTED_KEY = os.getenv('CONTROL_KEY'), os.getenv
 # number of features, dimensionality of an input space
 N_INPUT = n_input = train_new.shape[1] 
 N_HIDDEN = 100  # size of a hidden layer
-N_LAYERS = 2    # number of hidden layers in fully-connected NN 
+N_LAYERS = 2    # number of hidden layers in fully-connected NN  # IMPORTANT: 3 was used for Experiments 1, 3
 N_LATENT = 10  # dimensionality of latent space
 BATCH_SIZE = 32
 
