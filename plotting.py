@@ -91,7 +91,8 @@ def reg_mean_plot(
     ax.text(
         max(x) - max(x) * x_coeff,
         max(y) - y_coeff * max(y),
-        r"$\mathrm{R^2_{\mathrm{\mathsf{all\ genes}}}}$= " + f"{r_value ** 2:.2f}",
+        r"$\mathrm{R^2_{\mathrm{\mathsf{all\ genes}}}}$= " +
+        f"{r_value ** 2:.2f}",
         fontsize=kwargs.get("textsize", fontsize),
     )
     if diff_genes is not None:

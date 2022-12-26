@@ -4,7 +4,8 @@ import numpy as np
 from dotenv import load_dotenv
 
 load_dotenv()
-CONDITION_KEY, CELL_TYPE_KEY = os.getenv('CONDITION_KEY'), os.getenv('CELL_TYPE_KEY')
+CONDITION_KEY, CELL_TYPE_KEY = os.getenv(
+    'CONDITION_KEY'), os.getenv('CELL_TYPE_KEY')
 CONTROL_KEY, STIMULATED_KEY, PREDICTED_KEY = os.getenv('CONTROL_KEY'), os.getenv('STIMULATED_KEY'), os.getenv(
     'PREDICTED_KEY')
 
@@ -41,7 +42,7 @@ def remove_stimulated_for_cell_type(adata, cell_type, verbose=False):
         print("-" * 10 + "Before" + "-" * 10)
         print(adata)
     adata_no_stimulated_cell_type = adata[~((adata.obs[CELL_TYPE_KEY] == cell_type) &
-                             (adata.obs[CONDITION_KEY] == STIMULATED_KEY))].copy()
+                                            (adata.obs[CONDITION_KEY] == STIMULATED_KEY))].copy()
     if verbose:
         print("-" * 10 + "After" + "-" * 10)
         print(adata_no_stimulated_cell_type)
@@ -56,7 +57,8 @@ def remove_stimulated_for_cell_types(adata, cell_types, sample_size=None, verbos
                              (adata.obs[CONDITION_KEY] == STIMULATED_KEY))].copy()
     if verbose:
         print("-" * 10 + "After" + "-" * 10)
-        print(adata_modified[adata_modified.obs[CONDITION_KEY] == STIMULATED_KEY])
+        print(
+            adata_modified[adata_modified.obs[CONDITION_KEY] == STIMULATED_KEY])
     return adata_modified
 
 
@@ -66,15 +68,17 @@ def extractor(adata, cell_type):
     """
     cell_with_both_condition = adata[adata.obs[CELL_TYPE_KEY] == cell_type]
     condition_1 = adata[
-        (adata.obs[CELL_TYPE_KEY] == cell_type) & (adata.obs[CONDITION_KEY] == CONTROL_KEY)
-        ]
+        (adata.obs[CELL_TYPE_KEY] == cell_type) & (
+            adata.obs[CONDITION_KEY] == CONTROL_KEY)
+    ]
     condition_2 = adata[
-        (adata.obs[CELL_TYPE_KEY] == cell_type) & (adata.obs[CONDITION_KEY] == STIMULATED_KEY)
-        ]
+        (adata.obs[CELL_TYPE_KEY] == cell_type) & (
+            adata.obs[CONDITION_KEY] == STIMULATED_KEY)
+    ]
     training = adata[
         ~(
-                (adata.obs[CELL_TYPE_KEY] == cell_type)
-                & (adata.obs[CONDITION_KEY] == STIMULATED_KEY)
+            (adata.obs[CELL_TYPE_KEY] == cell_type)
+            & (adata.obs[CONDITION_KEY] == STIMULATED_KEY)
         )
     ]
     return [training, condition_1, condition_2, cell_with_both_condition]
